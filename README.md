@@ -1,8 +1,8 @@
-# Financial Q&A System - RAG Sprint Challenge
+# Financial Q&A System - RAG 
 
 A focused RAG (Retrieval-Augmented Generation) system with basic agent capabilities that answers both simple and comparative financial questions about Google, Microsoft, and NVIDIA using their recent 10-K filings.
 
-## 🎯 Assignment Overview
+## 🎯 Overview
 
 This system demonstrates:
 - **Vector-based RAG implementation** using TF-IDF embeddings
