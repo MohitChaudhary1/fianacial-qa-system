@@ -1,14 +1,15 @@
 # Financial Q&A System - RAG 
 
-A focused RAG (Retrieval-Augmented Generation) system with basic agent capabilities that answers both simple and comparative financial questions about Google, Microsoft, and NVIDIA using their recent 10-K filings.
+A comprehensive RAG (Retrieval-Augmented Generation) system with advanced agent capabilities that answers both simple and comparative financial questions about Google, Microsoft, and NVIDIA using their recent 10-K filings.
 
 ## 🎯 Overview
 
 This system demonstrates:
-- **Vector-based RAG implementation** using TF-IDF embeddings
-- **Agent orchestration** for query decomposition and multi-step reasoning
+- **Dual RAG implementation** with both ChromaDB + HuggingFace embeddings and TF-IDF fallback
+- **Advanced agent orchestration** for query decomposition and multi-step reasoning
 - **Multi-step retrieval and synthesis** for complex financial queries
-- **Clean engineering practices** with modular design
+- **Production-ready architecture** with modular design and error handling
+- **Comprehensive testing** with automated test suite and result validation
 
 ## 📊 Data Scope
 
@@ -34,6 +35,7 @@ echo "GROQ_API_KEY=your_groq_api_key_here" > .env
 
 ### 2. Run the System
 
+#### Option A: Standalone Implementation (Recommended for Testing)
 ```bash
 # Set up the system (creates vector database with mock data)
 python main.py setup
@@ -51,55 +53,100 @@ python main.py demo
 python main.py test
 ```
 
+#### Option B: Full RAG Pipeline (Advanced)
+```bash
+# Download real SEC filings and process them
+python cli.py setup
+
+# Query with real document processing
+python cli.py query "Compare AI investments across all companies"
+
+# Interactive mode with full capabilities
+python cli.py query -i
+```
+
 ## 🔧 System Architecture
 
 ```
 [User Query] 
        ↓
+[Main CLI Interface] (main.py)
+       ↓
 [Query Agent] ← [LLM (Groq Llama3) - Optional]
        ↓
 [Query Decomposition] → [Sub-queries]
        ↓
-[Vector Search] ← [TF-IDF Vector Store]
+[Vector Search] ← [ChromaDB + HuggingFace Embeddings]
        ↓
-[Document Retrieval] ← [Mock Financial Data]
+[Document Retrieval] ← [Mock Financial Data + Real 10-K Processing]
        ↓
 [Answer Synthesis] ← [Rule-based + LLM Processing]
        ↓
-[Formatted Response]
+[JSON Response with Sources]
 ```
+
+### Dual Implementation Strategy
+
+The system provides two parallel implementations:
+
+1. **Full RAG Pipeline** (`cli.py`, `query_agent.py`, `vector_store.py`)
+   - ChromaDB vector store with HuggingFace embeddings
+   - Advanced query decomposition and synthesis
+   - Real SEC filing processing capabilities
+   - LLM integration with Groq API
+
+2. **Standalone Implementation** (`main.py`)
+   - Self-contained system with TF-IDF embeddings
+   - Mock financial data for demonstration
+   - Works without external dependencies
+   - Perfect for testing and assignment requirements
 
 ## 📋 Core Components
 
 ### 1. Main System (`main.py`)
-- Complete working implementation with CLI interface
-- Handles all query types and system operations
-- Works without complex dependencies
+- **Standalone implementation** with complete CLI interface
+- **Self-contained** with TF-IDF embeddings and mock data
+- **Assignment-ready** - works without external dependencies
+- **Comprehensive testing** with automated test suite
+- **Interactive mode** for real-time querying
 
-### 2. Configuration (`config.py`)
-- Company information and CIK codes
-- Query types and test queries
-- System parameters and settings
+### 2. System Orchestrator (`cli.py`)
+- **Full RAG pipeline** coordinator
+- **SEC filing integration** with real document processing
+- **Vector store management** and system initialization
+- **Error handling** and graceful fallbacks
 
-### 3. Vector Store (`vector_store.py`)
-- ChromaDB implementation for persistent storage
-- HuggingFace embeddings (with fallback)
-- Similarity search and document retrieval
+### 3. Query Agent (`query_agent.py`)
+- **Advanced query decomposition** with 4 query types
+- **Multi-step reasoning** for complex financial analysis
+- **LLM integration** with Groq API (optional)
+- **Source attribution** and reasoning explanations
+- **Demo mode** for dependency-free operation
 
-### 4. Query Agent (`query_agent.py`)
-- Query decomposition and classification
-- Multi-step reasoning for complex questions
-- LLM integration with Groq
+### 4. Vector Store (`vector_store.py`)
+- **ChromaDB implementation** for persistent storage
+- **HuggingFace embeddings** with CPU optimization
+- **Advanced filtering** by company, year, and section type
+- **Collection statistics** and metadata management
+- **Similarity search** with relevance scoring
 
 ### 5. Document Processor (`document_processor.py`)
-- Text extraction from HTML filings
-- Semantic chunking (200-1000 tokens)
-- Key section extraction
+- **HTML parsing** from SEC 10-K filings
+- **Semantic chunking** (800 chars, 100 overlap)
+- **Metadata extraction** for company, year, section type
+- **Content cleaning** and normalization
 
 ### 6. SEC Downloader (`sec_downloader.py`)
-- Downloads 10-K filings from SEC EDGAR
-- Handles company CIK codes and filing years
-- Stores HTML files locally
+- **Automated SEC filing downloads** from EDGAR
+- **Company CIK code handling** for Google, Microsoft, NVIDIA
+- **Multi-year support** (2022, 2023, 2024)
+- **Rate limiting** and error handling
+
+### 7. Configuration (`config.py`)
+- **Centralized settings** for all system parameters
+- **Company information** and CIK codes
+- **Query type definitions** and test queries
+- **API configuration** and model settings
 
 ## 🎯 Supported Query Types
 
@@ -164,58 +211,85 @@ The system returns JSON responses with the following structure:
 
 ## 🛠️ Technical Implementation
 
+### Dual Embedding Strategy
+- **Primary**: HuggingFace `all-MiniLM-L6-v2` with ChromaDB
+- **Fallback**: Custom TF-IDF embeddings (dependency-free)
+- **Normalization**: Enabled for better similarity search
+- **Device**: CPU-optimized for broad compatibility
+
 ### Chunking Strategy
 - **Size**: 800 characters (~600-800 tokens)
 - **Overlap**: 100 characters (~75-100 tokens)
 - **Separators**: `["\n\n", "\n", ". ", " ", ""]` for semantic boundaries
-- **Focus**: Key financial sections with metadata
-
-### Embedding Model
-- **Primary**: HuggingFace `all-MiniLM-L6-v2`
-- **Fallback**: Simple TF-IDF embeddings (for dependency-free operation)
-- **Normalization**: Enabled for better similarity search
+- **Metadata**: Company, year, section_type, chunk_id
 
 ### Agent Approach
-- **Query Classification**: Simple, Comparative, Growth Analysis, Calculation
-- **Decomposition**: Break complex queries into targeted sub-queries
-- **Synthesis**: Combine results using rule-based logic + LLM reasoning
+- **Query Classification**: 4 types (Simple, Comparative, Growth Analysis, Calculation)
+- **Decomposition**: Intelligent sub-query generation based on query type
+- **Synthesis**: Multi-step reasoning with source attribution
+- **Fallback**: Rule-based responses when LLM unavailable
+
+### Vector Store Features
+- **Persistence**: ChromaDB with local storage
+- **Filtering**: By company, year, section type
+- **Search**: Similarity search with relevance scores
+- **Statistics**: Collection metadata and document counts
 
 ## 📁 Project Structure
 
 ```
 financial-qa-system/
-├── main.py              # 🚀 Main CLI interface and system
-├── config.py            # Configuration settings
-├── cli.py               # System orchestrator
-├── sec_downloader.py    # SEC filing downloader
-├── document_processor.py # Text processing and chunking
-├── vector_store.py      # Vector database implementation
-├── query_agent.py       # Query processing agent
-├── requirements.txt     # Python dependencies
-├── README.md           # This documentation
-├── test_results.json   # Test results
-├── data/               # Data storage
-│   ├── raw/           # Original SEC filings
-│   └── processed/     # Processed documents
-└── chromadb/          # Vector database storage
+├── main.py              # 🚀 Standalone implementation (TF-IDF + Mock Data)
+├── cli.py               # 🔧 Full RAG pipeline orchestrator
+├── query_agent.py       # 🤖 Advanced query processing agent
+├── vector_store.py      # 🗃️ ChromaDB vector database implementation
+├── document_processor.py # 📄 SEC filing text processing and chunking
+├── sec_downloader.py    # 📥 SEC EDGAR filing downloader
+├── config.py            # ⚙️ Centralized configuration settings
+├── requirements.txt     # 📦 Python dependencies
+├── README.md           # 📚 This documentation
+├── test_results.json   # 🧪 Automated test results
+├── data/               # 📁 Data storage directory
+│   ├── raw/           # Original SEC filings (HTML)
+│   └── processed/     # Processed document chunks
+└── chromadb/          # 🗄️ Persistent vector database storage
 ```
+
+### Key Files Explained
+
+- **`main.py`**: Complete standalone system with mock data - perfect for testing and demonstrations
+- **`cli.py`**: Full production pipeline with real SEC filing processing
+- **`query_agent.py`**: Advanced agent with query decomposition and LLM integration
+- **`vector_store.py`**: ChromaDB implementation with HuggingFace embeddings
+- **`test_results.json`**: Comprehensive test results for all query types
 
 ## 🧪 Testing
 
 ### Run All Tests
 ```bash
+# Test standalone implementation
 python main.py test
+
+# Test full RAG pipeline (requires setup)
+python cli.py test
 ```
 
 ### Test Results
 The system includes comprehensive testing for all required query types:
-- ✅ Basic Metrics
-- ✅ YoY Comparison  
-- ✅ Cross-Company Analysis
-- ✅ Segment Analysis
-- ✅ Complex Multi-step Queries
+- ✅ **Basic Metrics**: Single company, single year queries
+- ✅ **YoY Comparison**: Growth analysis across years
+- ✅ **Cross-Company Analysis**: Comparative metrics
+- ✅ **Segment Analysis**: Percentage calculations
+- ✅ **Complex Multi-step Queries**: Advanced reasoning
 
-Results are saved to `test_results.json` with full query processing details.
+### Test Coverage
+- **5 Query Types**: All assignment requirements covered
+- **9 Test Queries**: Comprehensive validation
+- **JSON Output**: Structured results with sources
+- **Error Handling**: Graceful failure management
+- **Performance Metrics**: Response time and accuracy
+
+Results are saved to `test_results.json` with full query processing details, sources, and reasoning.
 
 ## 💡 Usage Examples
 
@@ -299,14 +373,26 @@ python main.py demo
 
 ## 🚀 Key Features
 
-- **Query Decomposition**: Automatically breaks complex queries into sub-queries
-- **Multi-step Reasoning**: Handles comparative analysis across companies and years
-- **Source Attribution**: Provides document excerpts and metadata for transparency
-- **Agent Orchestration**: Intelligent routing based on query type classification
-- **Dependency-Free Operation**: Works without complex ML dependencies
-- **Comprehensive Testing**: Full test suite for all query types
-- **Interactive Mode**: Real-time query processing
-- **JSON Export**: Results saved for analysis and verification
+### Core Capabilities
+- **Dual Implementation**: Standalone + Full RAG pipeline options
+- **Query Decomposition**: Intelligent sub-query generation for complex questions
+- **Multi-step Reasoning**: Advanced comparative analysis across companies and years
+- **Source Attribution**: Complete document excerpts and metadata for transparency
+- **Agent Orchestration**: Smart routing based on query type classification
+
+### Technical Features
+- **Dual Embedding Strategy**: HuggingFace + TF-IDF fallback
+- **Persistent Vector Store**: ChromaDB with local storage
+- **Real SEC Integration**: Automated 10-K filing download and processing
+- **LLM Integration**: Optional Groq API for advanced reasoning
+- **Dependency-Free Mode**: Works without external ML dependencies
+
+### User Experience
+- **Interactive Mode**: Real-time query processing with help system
+- **Comprehensive Testing**: Full test suite with automated validation
+- **JSON Export**: Structured results for analysis and verification
+- **Error Handling**: Graceful fallbacks and informative error messages
+- **Demo Mode**: Complete functionality without API keys
 
 ## 📝 License
 
