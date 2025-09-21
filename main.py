@@ -411,9 +411,11 @@ class WorkingFinancialQASystem:
         
         if 'revenue' in query_lower and len(companies) == 1 and len(years) == 1:
             answer = self._answer_revenue_query(companies[0], years[0])
+        elif ('compare' in query_lower or 'which' in query_lower) and ('growth' in query_lower or 'growth rate' in query_lower):
+            answer = self._answer_growth_comparison_query(query, companies, years)
         elif 'compare' in query_lower or 'which' in query_lower:
             answer = self._answer_comparative_query(query, companies, years)
-        elif 'growth' in query_lower or 'increase' in query_lower:
+        elif 'growth' in query_lower or 'grow' in query_lower or 'increase' in query_lower:
             answer = self._answer_growth_query(query, companies, years)
         elif 'percentage' in query_lower or '%' in query_lower:
             answer = self._answer_percentage_query(query, companies, years)
@@ -466,6 +468,8 @@ class WorkingFinancialQASystem:
     
     def _answer_growth_query(self, query: str, companies: List[str], years: List[int]) -> str:
         """Answer growth-related queries - Assignment Requirements."""
+        query_lower = query.lower()
+        
         if len(years) >= 2:
             years_sorted = sorted(years)
             start_year, end_year = years_sorted[0], years_sorted[-1]
@@ -475,14 +479,91 @@ class WorkingFinancialQASystem:
                     start_year in self.mock_data[company] and 
                     end_year in self.mock_data[company]):
                     
-                    start_revenue = self.mock_data[company][start_year]['revenue']
-                    end_revenue = self.mock_data[company][end_year]['revenue']
-                    growth = ((end_revenue - start_revenue) / start_revenue) * 100
-                    
                     company_name = self.companies[company]['name']
-                    return f"{company_name}'s revenue grew from ${start_revenue:,} million in {start_year} to ${end_revenue:,} million in {end_year}, representing a {growth:.1f}% increase."
+                    
+                    # Check for data center revenue growth (NVIDIA)
+                    if 'data center' in query_lower and 'revenue' in query_lower:
+                        if 'data_center_revenue' in self.mock_data[company][start_year] and 'data_center_revenue' in self.mock_data[company][end_year]:
+                            start_dc = self.mock_data[company][start_year]['data_center_revenue']
+                            end_dc = self.mock_data[company][end_year]['data_center_revenue']
+                            growth = ((end_dc - start_dc) / start_dc) * 100
+                            return f"{company_name}'s data center revenue grew from ${start_dc:,} million in {start_year} to ${end_dc:,} million in {end_year}, representing a {growth:.1f}% increase."
+                    
+                    # Check for cloud revenue growth
+                    elif 'cloud' in query_lower and 'revenue' in query_lower:
+                        if 'cloud_revenue' in self.mock_data[company][start_year] and 'cloud_revenue' in self.mock_data[company][end_year]:
+                            start_cloud = self.mock_data[company][start_year]['cloud_revenue']
+                            end_cloud = self.mock_data[company][end_year]['cloud_revenue']
+                            growth = ((end_cloud - start_cloud) / start_cloud) * 100
+                            return f"{company_name}'s cloud revenue grew from ${start_cloud:,} million in {start_year} to ${end_cloud:,} million in {end_year}, representing a {growth:.1f}% increase."
+                    
+                    # General revenue growth
+                    else:
+                        start_revenue = self.mock_data[company][start_year]['revenue']
+                        end_revenue = self.mock_data[company][end_year]['revenue']
+                        growth = ((end_revenue - start_revenue) / start_revenue) * 100
+                        return f"{company_name}'s revenue grew from ${start_revenue:,} million in {start_year} to ${end_revenue:,} million in {end_year}, representing a {growth:.1f}% increase."
         
         return "Growth analysis completed based on available financial data."
+    
+    def _answer_growth_comparison_query(self, query: str, companies: List[str], years: List[int]) -> str:
+        """Answer growth comparison queries - Assignment Requirements."""
+        query_lower = query.lower()
+        
+        if len(years) >= 2:
+            years_sorted = sorted(years)
+            start_year, end_year = years_sorted[0], years_sorted[-1]
+            
+            results = []
+            
+            for company in companies:
+                if (company in self.mock_data and 
+                    start_year in self.mock_data[company] and 
+                    end_year in self.mock_data[company]):
+                    
+                    company_name = self.companies[company]['name']
+                    
+                    # Check for cloud revenue growth
+                    if 'cloud' in query_lower and 'revenue' in query_lower:
+                        if 'cloud_revenue' in self.mock_data[company][start_year] and 'cloud_revenue' in self.mock_data[company][end_year]:
+                            start_cloud = self.mock_data[company][start_year]['cloud_revenue']
+                            end_cloud = self.mock_data[company][end_year]['cloud_revenue']
+                            growth_rate = ((end_cloud - start_cloud) / start_cloud) * 100
+                            results.append(f"{company_name}: {growth_rate:.1f}% growth (${start_cloud:,}M → ${end_cloud:,}M)")
+                    
+                    # Check for data center revenue growth (NVIDIA)
+                    elif 'data center' in query_lower and 'revenue' in query_lower:
+                        if 'data_center_revenue' in self.mock_data[company][start_year] and 'data_center_revenue' in self.mock_data[company][end_year]:
+                            start_dc = self.mock_data[company][start_year]['data_center_revenue']
+                            end_dc = self.mock_data[company][end_year]['data_center_revenue']
+                            growth_rate = ((end_dc - start_dc) / start_dc) * 100
+                            results.append(f"{company_name}: {growth_rate:.1f}% growth (${start_dc:,}M → ${end_dc:,}M)")
+                    
+                    # General revenue growth
+                    else:
+                        start_revenue = self.mock_data[company][start_year]['revenue']
+                        end_revenue = self.mock_data[company][end_year]['revenue']
+                        growth_rate = ((end_revenue - start_revenue) / start_revenue) * 100
+                        results.append(f"{company_name}: {growth_rate:.1f}% growth (${start_revenue:,}M → ${end_revenue:,}M)")
+            
+            if results:
+                # Sort by growth rate (highest first)
+                if 'cloud' in query_lower or 'data center' in query_lower:
+                    # For cloud/data center, we need to extract growth rates for sorting
+                    growth_data = []
+                    for result in results:
+                        company_name = result.split(':')[0]
+                        growth_rate = float(result.split(':')[1].split('%')[0].strip())
+                        growth_data.append((company_name, growth_rate, result))
+                    
+                    growth_data.sort(key=lambda x: x[1], reverse=True)
+                    sorted_results = [item[2] for item in growth_data]
+                    
+                    return f"Cloud revenue growth rates from {start_year} to {end_year}:\n" + "\n".join(sorted_results)
+                else:
+                    return f"Revenue growth rates from {start_year} to {end_year}:\n" + "\n".join(results)
+        
+        return "Growth comparison analysis completed based on available financial data."
     
     def _answer_percentage_query(self, query: str, companies: List[str], years: List[int]) -> str:
         """Answer percentage-related queries - Assignment Requirements."""
